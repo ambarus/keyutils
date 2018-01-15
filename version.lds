@@ -71,5 +71,8 @@ KEYUTILS_1.6 {
 	keyctl_pkey_decrypt;
 	keyctl_pkey_sign;
 	keyctl_pkey_verify;
+	keyctl_kpp_query;
+	keyctl_kpp_gen_pubkey;
+	keyctl_kpp_compute_ss;
 
 } KEYUTILS_1.5;

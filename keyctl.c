@@ -74,6 +74,9 @@ static nr void act_keyctl_pkey_encrypt(int argc, char *argv[]);
 static nr void act_keyctl_pkey_decrypt(int argc, char *argv[]);
 static nr void act_keyctl_pkey_sign(int argc, char *argv[]);
 static nr void act_keyctl_pkey_verify(int argc, char *argv[]);
+static nr void act_keyctl_kpp_query(int argc, char *argv[]);
+static nr void act_keyctl_kpp_gen_pubkey(int argc, char *argv[]);
+static nr void act_keyctl_kpp_compute_ss(int argc, char *argv[]);
 
 const struct command commands[] = {
 	{ act_keyctl___version,	"--version",	"" },
@@ -99,6 +102,9 @@ const struct command commands[] = {
 	{ act_keyctl_pkey_decrypt, "pkey_decrypt", "<key> <datafile> [k=v]*" },
 	{ act_keyctl_pkey_sign, "pkey_sign",	"<key> <datafile> [k=v]*" },
 	{ act_keyctl_pkey_verify, "pkey_verify", "<key> <datafile> <sigfile> [k=v]*" },
+	{ act_keyctl_kpp_query, "kpp_query",    "<key>" },
+	{ act_keyctl_kpp_gen_pubkey, "kpp_gen_pubkey", "<key> <datafile>" },
+	{ act_keyctl_kpp_compute_ss, "kpp_compute_ss", "<key> <datafile>" },
 	{ act_keyctl_prequest2,	"prequest2",	"<type> <desc> [<dest_keyring>]" },
 	{ act_keyctl_print,	"print",	"<key>" },
 	{ act_keyctl_pupdate,	"pupdate",	"<key>" },
@@ -1880,6 +1886,91 @@ static void act_keyctl_pkey_verify(int argc, char *argv[])
 	if (keyctl_pkey_verify(key, info,
 			       data, data_len, sig, sig_len) < 0)
 		error("keyctl_pkey_verify");
+	exit(0);
+}
+
+static void act_keyctl_kpp_query(int argc, char *argv[])
+{
+	struct keyctl_kpp_query result;
+	key_serial_t key;
+
+	if (argc < 2)
+		format();
+
+	key = get_key_id(argv[1]);
+
+	if (keyctl_kpp_query(key, &result) < 0)
+		error("keyctl_kpp_query");
+
+	printf("max_size=%u\n", result.max_size);
+	printf("kpp_gen_pubkey=%c\n",
+	       result.supported_ops & KEYCTL_SUPPORTS_GEN_PUBKEY ? 'y' : 'n');
+	printf("kpp_compute_ss=%c\n",
+	       result.supported_ops & KEYCTL_SUPPORTS_COMPUTE_SS ? 'y' : 'n');
+	exit(0);
+}
+
+/*
+ * Generate public key. The private key was set when the key was added.
+ */
+static void act_keyctl_kpp_gen_pubkey(int argc, char *argv[])
+{
+	struct keyctl_kpp_query result;
+	key_serial_t key;
+	long out_len;
+	void *out;
+
+	if (argc < 2)
+		format();
+
+	key = get_key_id(argv[1]);
+
+	if (keyctl_kpp_query(key, &result) < 0)
+		error("keyctl_kpp_query");
+
+	out = malloc(result.max_size);
+	if (!out)
+		error("malloc");
+
+	out_len = keyctl_kpp_gen_pubkey(key, out, result.max_size);
+	if (out_len < 0)
+		error("keyctl_kpp_gen_pubkey");
+
+	if (fwrite(out, out_len, 1, stdout) != 1)
+		error("stdout");
+	exit(0);
+}
+
+/*
+ * Compute shared secret.
+ */
+static void act_keyctl_kpp_compute_ss(int argc, char *argv[])
+{
+	struct keyctl_kpp_query result;
+	key_serial_t key;
+	size_t in_len;
+	long out_len;
+	void *in, *out;
+
+	if (argc < 4)
+		format();
+
+	key = get_key_id(argv[1]);
+	in = read_file(argv[3], &in_len);
+
+	if (keyctl_kpp_query(key, &result) < 0)
+		error("keyctl_pkey_query");
+
+	out = malloc(result.max_size);
+	if (!out)
+		error("malloc");
+
+	out_len = keyctl_kpp_compute_ss(key, in, in_len, out, result.max_size);
+	if (out_len < 0)
+		error("keyctl_kpp_compute_ss");
+
+	if (fwrite(out, out_len / 2, 1, stdout) != 1)
+		error("stdout");
 	exit(0);
 }
 
