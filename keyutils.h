@@ -105,6 +105,10 @@ typedef uint32_t key_perm_t;
 #define KEYCTL_PKEY_DECRYPT		26	/* Decrypt a blob using a public key */
 #define KEYCTL_PKEY_SIGN		27	/* Create a public key signature */
 #define KEYCTL_PKEY_VERIFY		28	/* Verify a public key signature */
+#define KEYCTL_KPP_QUERY		30	/* Query KPP parameters */
+#define KEYCTL_KPP_GEN_PUBKEY		31	/* Generate public key */
+#define KEYCTL_KPP_COMPUTE_SS		32	/* Compute shared secret */
+
 
 /* keyctl structures */
 struct keyctl_dh_params {
@@ -135,6 +139,23 @@ struct keyctl_pkey_params {
 		unsigned int	out_len; /* Output buffer size (encrypt/decrypt/sign) */
 		unsigned int	in2_len; /* Second input data size (verify) */
 	};
+	unsigned int	__spare[7];
+};
+
+#define KEYCTL_SUPPORTS_GEN_PUBKEY	0x0f
+#define KEYCTL_SUPPORTS_COMPUTE_SS	0x10
+
+struct keyctl_kpp_query {
+	unsigned int	supported_ops;  /* Which ops are supported */
+	unsigned int	key_size;       /* Size of the key in bits */
+	unsigned short	max_size;	/* Maximum size of the output buffer in bytes */
+	unsigned int	__spare[10];
+};
+
+struct keyctl_kpp_params {
+	unsigned int	key_id;         /* Serial no. of public key to use */
+	unsigned int	in_len;         /* Input data size */
+	unsigned int	out_len;        /* Output buffer size */
 	unsigned int	__spare[7];
 };
 
@@ -213,6 +234,13 @@ extern long keyctl_pkey_verify(key_serial_t key_id,
 			       const char *info,
 			       const void *data, size_t data_len,
 			       const void *sig, size_t sig_len);
+extern long keyctl_kpp_query(key_serial_t key_id,
+			     struct keyctl_kpp_query *result);
+extern long keyctl_kpp_gen_pubkey(key_serial_t key_id,
+				  void *out, size_t out_len);
+extern long keyctl_kpp_compute_ss(key_serial_t key_id,
+				  const void *in, size_t in_len,
+				  void *out, size_t out_len);
 
 /*
  * utilities

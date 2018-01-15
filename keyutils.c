@@ -307,6 +307,36 @@ long keyctl_pkey_verify(key_serial_t key_id,
 	return keyctl(KEYCTL_PKEY_VERIFY, &params, info, data, sig);
 }
 
+long keyctl_kpp_query(key_serial_t key_id, struct keyctl_kpp_query *result)
+{
+	return keyctl(KEYCTL_KPP_QUERY, key_id, 0, 0, result);
+}
+
+long keyctl_kpp_gen_pubkey(key_serial_t key_id,
+			   void *out, size_t out_len)
+{
+	struct keyctl_kpp_params params = {
+		.key_id		= key_id,
+		.in_len		= 0,
+		.out_len	= out_len,
+	};
+
+	return keyctl(KEYCTL_KPP_GEN_PUBKEY, &params, 0, 0, out);
+}
+
+long keyctl_kpp_compute_ss(key_serial_t key_id,
+			   const void *in, size_t in_len,
+			   void *out, size_t out_len)
+{
+	struct keyctl_kpp_params params = {
+		.key_id		= key_id,
+		.in_len		= in_len,
+		.out_len	= out_len,
+	};
+
+	return keyctl(KEYCTL_KPP_COMPUTE_SS, &params, 0, in, out);
+}
+
 /*****************************************************************************/
 /*
  * fetch key description into an allocated buffer
